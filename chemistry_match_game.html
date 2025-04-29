@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>化学连连看--置换反应</title>
+    <style>
+       .card {
+            font-size: 1.25rem;
+            font-family: 'Arial', sans-serif;
+            width: 120px;
+            height: 120px;
+        }
+
+       .result-text {
+            font-family: 'Georgia', serif;
+        }
+
+       .button-text {
+            font-family: 'Verdana', sans-serif;
+        }
+
+       .tips-section {
+            background-color: #f3f4f6;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+       .game-board-container {
+            background-color: #e5e7eb;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+       .error-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+       .error-modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            color: black;
+        }
+
+       .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 101;
+        }
+
+       .result-modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            color: black;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+       .shake {
+            animation: shake 0.5s;
+            animation-iteration-count: 1;
+        }
+
+       .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            animation: fall 3s linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                top: -10%;
+                transform: rotate(0deg);
+            }
+
+            100% {
+                top: 100%;
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gray-100 flex justify-center items-center min-h-screen m-0">
+    <div id="game-side" class="bg-white p-5 rounded-lg shadow-md">
+        <h1 id="level-title" class="text-2xl font-bold text-center mb-6">化学连连看--置换反应 L1</h1>
+        <div class="game-board-container">
+            <div id="game-board" class="grid grid-cols-4 grid-rows-2 gap-2.5 m-5 mx-auto justify-center"></div>
+        </div>
+        <div id="result" class="text-center text-xl mt-5"></div>
+        <div id="score-display" class="text-center text-xl mt-5">当前积分: 0</div>
+        <div id="rank-display" class="text-center text-xl mt-2">集宝箱：您当前收集了 0/60 个物质</div>
+        <div id="score-change" class="text-center text-lg mt-2.5 text-green-500"></div>
+        <div id="tips" class="mt-10 p-5 tips-section">
+            <h2 class="text-lg font-bold mb-2.5">游戏闯关小技巧</h2>
+            <p class="leading-relaxed" id="tips-content"></p>
+            <button id="knowledge-base-btn" class="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded button-text"
+                onclick="openKnowledgeBase()">AI化学知识库</button>
+        </div>
+    </div>
+    <div class="confetti fixed top-0 left-0 w-full h-full pointer-events-none z-50" id="confetti"></div>
+    <audio id="success-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    <audio id="fail-sound" src="https://www.soundjay.com/misc/fail-buzzer-01.wav"></audio>
+    <audio id="background-music" src="https://cdn.pixabay.com/download/audio/2023/10/03/audio_616829d766.mp3?filename=positive-mind-118726.mp3"
+        loop></audio>
+    <button id="music-control" class="fixed top-4 right-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onclick="toggleMusic()">
+        <i class="fa-solid fa-volume-high"></i>
+    </button>
+    <div id="error-modal" class="error-modal">
+        <div class="error-modal-content">
+            <p>你已经连续两次错误配对啦😔，点击“AI化学知识库”领取🎁</p>
+            <div class="flex justify-between mt-4">
+                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded button-text"
+                    onclick="openKnowledgeBase()">AI化学知识库</button>
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-text"
+                    onclick="closeErrorModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    <div id="result-modal" class="result-modal">
+        <div class="result-modal-content">
+            <p id="result-modal-text"></p>
+            <button class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-text"
+                onclick="closeResultModal()">关闭</button>
+        </div>
+    </div>
+    <script>
+        const L1_reactionPairs = [
+            ["Mg", "ZnSO₄"],
+            ["Mg", "FeCl₃"],
+            ["Mg", "CuSO₄"],
+            ["Mg", "AgNO₃"],
+            ["Zn", "FeCl₃"],
+            ["Zn", "CuSO₄"],
+            ["Zn", "AgNO₃"],
+            ["Fe", "CuSO₄"],
+            ["Fe", "AgNO₃"],
+            ["Cu", "AgNO₃"]
+        ];
+        const L1_allCards = ["镁", "锌", "铁", "铜", "硫酸锌", "氯化铁", "硫酸铜", "硝酸银"];
+        const L1_metals = ["镁", "锌", "铁", "铜"];
+        const L1_compounds = ["硫酸锌", "氯化铁", "硫酸铜", "硝酸银"];
+        const L1_metalSymbols = { "镁": "Mg", "锌": "Zn", "铁": "Fe", "铜": "Cu" };
+        const L1_saltMap = { "硫酸锌": "ZnSO₄", "氯化铁": "FeCl₃", "硫酸铜": "CuSO₄", "硝酸银": "AgNO₃" };
+
+        const L2_reactionPairs = [
+            ["Al", "CuSO₄"],
+            ["Al", "AgNO₃"],
+            ["Sn", "CuSO₄"],
+            ["Sn", "AgNO₃"],
+            ["Pb", "CuSO₄"],
+            ["Pb", "AgNO₃"]
+        ];
+        const L2_allCards = ["铝", "锡", "铅", "硫酸铜", "硝酸银"];
+        const L2_metals = ["铝", "锡", "铅"];
+        const L2_compounds = ["硫酸铜", "硝酸银"];
+        const L2_metalSymbols = { "铝": "Al", "锡": "Sn", "铅": "Pb" };
+        const L2_saltMap = { "硫酸铜": "CuSO₄", "硝酸银": "AgNO₃" };
+
+        const FULL_SCORE = 100;
+        const PENALTY = 10;
+        const MATCH_POINTS = 25;
+        const MISMATCH_PENALTY = 10;
+
+        const gameBoard = document.getElementById('game-board');
+        const result = document.getElementById('result');
+        const scoreDisplay = document.getElementById('score-display');
+        const rankDisplay = document.getElementById('rank-display');
+        const scoreChange = document.getElementById('score-change');
+        const confetti = document.getElementById('confetti');
+        const successSound = document.getElementById('success-sound');
+        const failSound = document.getElementById('fail-sound');
+        const backgroundMusic = document.getElementById('background-music');
+        const musicControl = document.getElementById('music-control');
+        const errorModal = document.getElementById('error-modal');
+        const resultModal = document.getElementById('result-modal');
+        const resultModalText = document.getElementById('result-modal-text');
+        const levelTitle = document.getElementById('level-title');
+
+        let currentLevel = 1;
+        let firstCard = null;
+        let secondCard = null;
+        let matchedPairs = 0;
+        let score = 0;
+        let consecutiveFailures = 0;
+        let incorrectPairs = [];
+        let hasFailedMatch = false;
+        let highestUnlockedCount = 0;
+        let remainingTwoPairsFailures = 0;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function setupGame() {
+            let reactionPairs, allCards, metals, compounds, metalSymbols, saltMap;
+            if (currentLevel === 1) {
+                reactionPairs = L1_reactionPairs;
+                allCards = L1_allCards;
+                metals = L1_metals;
+                compounds = L1_compounds;
+                metalSymbols = L1_metalSymbols;
+                saltMap = L1_saltMap;
+                levelTitle.textContent = '化学连连看--置换反应 L1';
+            } else if (currentLevel === 2) {
+                reactionPairs = L2_reactionPairs;
+                allCards = L2_allCards;
+                metals = L2_metals;
+                compounds = L2_compounds;
+                metalSymbols = L2_metalSymbols;
+                saltMap = L2_saltMap;
+                levelTitle.textContent = '化学连连看--置换反应 L2';
+            }
+            const shuffledCards = shuffleArray(allCards);
+            gameBoard.innerHTML = '';
+            shuffledCards.forEach((cardText, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card', 'bg-white', 'rounded-lg', 'shadow-md', 'flex', 'justify-center', 'items-center', 'text-base', 'cursor-pointer', 'transition-transform', 'duration-300', 'aspect-square');
+                if (index % 4 === 0) {
+                    card.classList.add('bg-pink-200');
+                } else if (index % 4 === 1) {
+                    card.classList.add('bg-sky-200');
+                } else if (index % 4 === 2) {
+                    card.classList.add('bg-green-200');
+                } else {
+                    card.classList.add('bg-yellow-200');
+                }
+                card.textContent = cardText;
+                card.dataset.index = index;
+                card.addEventListener('click', clickCard);
+                gameBoard.appendChild(card);
+            });
+            document.getElementById('tips-content').textContent = '';
+            updateRankDisplay();
+        }
+
+        function clickCard() {
+            if (this.classList.contains('matched')) return;
+            if (this.classList.contains('flipped')) {
+                this.classList.remove('flipped');
+                if (this === firstCard) {
+                    firstCard = null;
+                } else if (this === secondCard) {
+                    secondCard = null;
+                }
+            } else {
+                if (firstCard && secondCard) {
+                    firstCard.classList.remove('flipped');
+                    secondCard.classList.remove('flipped');
+                    firstCard = null;
+                    secondCard = null;
+                }
+                this.classList.add('flipped', 'rotate-y-180');
+                if (!firstCard) {
+                    firstCard = this;
+                } else {
+                    secondCard = this;
+                    setTimeout(() => {
+                        checkMatch();
+                    }, 300);
+                }
+            }
+        }
+
+        function checkMatch() {
+            if (!firstCard || !secondCard) return;
+            let reactionPairs, metals, compounds, metalSymbols, saltMap;
+            if (currentLevel === 1) {
+                reactionPairs = L1_reactionPairs;
+                metals = L1_metals;
+                compounds = L1_compounds;
+                metalSymbols = L1_metalSymbols;
+                saltMap = L1_saltMap;
+            } else if (currentLevel === 2) {
+                reactionPairs = L2_reactionPairs;
+                metals = L2_metals;
+                compounds = L2_compounds;
+                metalSymbols = L2_metalSymbols;
+                saltMap = L2_saltMap;
+            }
+            const firstText = firstCard.textContent;
+            const secondText = secondCard.textContent;
+            if (metals.includes(firstText) && metals.includes(secondText) || compounds.includes(firstText) && compounds.includes(secondText)) {
+                handleMismatch();
+                return;
+            }
+            let metal, salt;
+            if (metalSymbols[firstText] && saltMap[secondText]) {
+                metal = metalSymbols[firstText];
+                salt = saltMap[secondText];
+            } else if (metalSymbols[secondText] && saltMap[firstText]) {
+                metal = metalSymbols[secondText];
+                salt = saltMap[firstText];
+            } else {
+                handleMismatch();
+                return;
+            }
+            const isMatch = reactionPairs.some(pair => pair[0] === metal && pair[1] === salt);
+            if (isMatch) {
+                handleMatch(metal, salt);
+            } else {
+                handleMismatch();
+            }
+            firstCard = null;
+            secondCard = null;
+        }
+
+        function handleMatch(metal, salt) {
+            consecutiveFailures = 0;
+            remainingTwoPairsFailures = 0;
+            firstCard.classList.add('matched', 'invisible');
+            secondCard.classList.add('matched', 'invisible');
+            matchedPairs++;
+            score += MATCH_POINTS;
+            updateScoreDisplay();
+            updateHighestUnlockedCount();
+            updateRankDisplay();
+            scoreChange.textContent = `匹配成功，获得 ${MATCH_POINTS} 分`;
+            scoreChange.style.color = 'green';
+            playSuccessEffect();
+            setTimeout(() => {
+                scoreChange.textContent = '';
+            }, 2000);
+            const remainingCards = document.querySelectorAll('.card:not(.matched)').length;
+            if (remainingCards === 0) {
+                if (currentLevel === 1) {
+                    if (score >= 100) {
+                        currentLevel = 2;
+                        resetGame();
+                    } else {
+                        showLowScoreInfo();
+                        openResultModal('闯关成功了，但是闯关质量有点低哦，100积分即可进入L2关卡', true);
+                    }
+                } else {
+                    showVictory();
+                    openResultModal('闯关成功！', true);
+                }
+            }
+        }
+
+        function handleMismatch() {
+            firstCard.classList.remove('flipped', 'rotate-y-180');
+            secondCard.classList.remove('flipped', 'rotate-y-180');
+            score -= MISMATCH_PENALTY;
+            consecutiveFailures++;
+            updateScoreDisplay();
+            updateRankDisplay();
+            const remainingCards = document.querySelectorAll('.card:not(.matched)').length;
+            const firstText = firstCard.textContent;
+            const secondText = secondCard.textContent;
+            let reactionPairs, metals, metalSymbols, saltMap;
+            if (currentLevel === 1) {
+                reactionPairs = L1_reactionPairs;
+                metals = L1_metals;
+                metalSymbols = L1_metalSymbols;
+                saltMap = L1_saltMap;
+            } else if (currentLevel === 2) {
+                reactionPairs = L2_reactionPairs;
+                metals = L2_metals;
+                compounds = L2_compounds;
+                metalSymbols = L2_metalSymbols;
+                saltMap = L2_saltMap;
+            }
+            let metal = metalSymbols[metals.find(m => m === firstText) || metals.find(m => m === secondText)];
+            let correctPair = reactionPairs.find(pair => pair[0] === metal);
+            let correctSubstance = correctPair? correctPair[1] : "";
+            let correctCardText = Object.keys(saltMap).find(key => saltMap[key] === correctSubstance);
+
+            const sortedPair = [firstText, secondText].sort().join('|');
+            const isDuplicate = incorrectPairs.some(pair => {
+                const existingSortedPair = [pair.wrong[0], pair.wrong[1]].sort().join('|');
+                return existingSortedPair === sortedPair;
+            });
+
+            if (!isDuplicate) {
+                incorrectPairs.push({ wrong: [firstText, secondText], correct: [metal, correctCardText] });
+            }
+
+            if (remainingCards === 4) {
+                remainingTwoPairsFailures++;
+                if (remainingTwoPairsFailures >= 3) {
+                    const lastPair = [firstText, secondText].sort();
+                    const lastPairKey = lastPair.join('|');
+                    const isLastPairDuplicate = incorrectPairs.some(pair => {
+                        const existingPair = [pair.wrong[0], pair.wrong[1]].sort();
+                        const existingPairKey = existingPair.join('|');
+                        return existingPairKey === lastPairKey;
+                    });
+                    if (!isLastPairDuplicate) {
+                        incorrectPairs.push({ wrong: lastPair, correct: [metal, correctCardText] });
+                    }
+                    showGameOver();
+                    openResultModal(`闯关失败！当前积分: ${score}。您当前收集了 ${matchedPairs * 2}/60 个物质～继续加油哦～收集到10个物质即可解锁L2关卡💪`, false);
+                    return;
+                }
+            } else if ((remainingCards === 2 && consecutiveFailures >= 1)) {
+                const lastPair = [firstText, secondText].sort();
+                const lastPairKey = lastPair.join('|');
+                const isLastPairDuplicate = incorrectPairs.some(pair => {
+                    const existingPair = [pair.wrong[0], pair.wrong[1]].sort();
+                    const existingPairKey = existingPair.join('|');
+                    return existingPairKey === lastPairKey;
+                });
+                if (!isLastPairDuplicate) {
+                    incorrectPairs.push({ wrong: lastPair, correct: [metal, correctCardText] });
+                }
+                showGameOver();
+                openResultModal(`闯关失败！当前积分: ${score}。您当前收集了 ${matchedPairs * 2}/60 个物质～继续加油哦～收集到10个物质即可解锁L2关卡💪`, false);
+                return;
+            }
+
+            if (consecutiveFailures >= 2) {
+                scoreChange.textContent = `匹配失败，扣除 ${MISMATCH_PENALTY} 分。本次错误配对为：${firstText} 和 ${secondText}`;
+                openErrorModal();
+            } else {
+                if (metals.includes(firstCard.textContent) && metals.includes(secondCard.textContent)) {
+                    scoreChange.textContent = `匹配失败，扣除 ${MISMATCH_PENALTY} 分。金属和金属是不能反应的哦`;
+                } else if (compounds.includes(firstCard.textContent) && compounds.includes(secondCard.textContent)) {
+                    scoreChange.textContent = `匹配失败，扣除 ${MISMATCH_PENALTY} 分。不对哦`;
+                } else {
+                    scoreChange.textContent = `匹配失败，扣除 ${MISMATCH_PENALTY} 分`;
+                }
+            }
+            scoreChange.style.color = 'red';
+            playFailEffect();
+            setTimeout(() => {
+                scoreChange.textContent = '';
+            }, 2000);
+
+            hasFailedMatch = true;
+            updateTipsContent();
+        }
+
+        function showGameOver() {
+            updateTipsContent();
+            result.innerHTML = `<span class="text-5xl font-bold text-red-500 result-text">闯关失败</span><br>
+                <button id="play-again" class="mt-8 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-text" onclick="resetGame()">再玩一次</button>
+                <button id="video科普" class="mt-8 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded button-text" onclick="openVideoPage()">视频科普</button>`;
+        }
+
+        function showVictory() {
+            updateTipsContent();
+            if (incorrectPairs.length > 0) {
+                let tipText = "以下是你在游戏中出现的错误配对：<br>";
+                incorrectPairs.forEach(pair => {
+                    tipText += `错误配对：${pair.wrong[0]} 和 ${pair.wrong[1]}<br>`;
+                });
+                document.getElementById('tips-content').innerHTML = tipText;
+            } else {
+                document.getElementById('tips-content').textContent = "你在游戏中没有出现错误配对，非常棒！";
+            }
+            result.innerHTML = `<span class="text-5xl font-bold text-green-500 result-text">胜利</span><br>
+                <button id="play-again" class="mt-8 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-text" onclick="resetGame()">再玩一次</button>
+                <button id="video科普" class="mt-8 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded button-text" onclick="openVideoPage()">视频科普</button>`;
+        }
+
+        function showLowScoreInfo() {
+            updateTipsContent();
+            result.innerHTML = `<span class="text-5xl font-bold text-yellow-500 result-text">100积分即可进入L2关卡</span><br>
+                <button id="play-again" class="mt-8 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-text" onclick="resetGame()">再玩一次</button>
+                <button id="video科普" class="mt-8 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded button-text" onclick="openVideoPage()">视频科普</button>`;
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `当前积分: ${score}`;
+        }
+
+        function playSuccessEffect() {
+            successSound.play();
+            createConfetti();
+            setTimeout(() => {
+                confetti.innerHTML = '';
+            }, 3000);
+        }
+
+        function playFailEffect() {
+            failSound.play();
+            firstCard.classList.add('shake');
+            secondCard.classList.add('shake');
+            setTimeout(() => {
+                firstCard.classList.remove('shake');
+                secondCard.classList.remove('shake');
+            }, 500);
+        }
+
+        function createConfetti() {
+            const colors = ['#FF6633', '#FFB399', '#FF33FF', '#FFFF99', '#00B3E6',
+                '#E6B333', '#3366E6', '#999966', '#99FF99', '#B34D4D',
+                '#80B300', '#809900', '#E6B3B3', '#6680B3', '#66991A',
+                '#FF99E6', '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC',
+                '#66994D', '#B366CC', '#4D8000', '#B33300', '#CC80CC',
+                '#66664D', '#991AFF', '#E666FF', '#4DB3FF', '#1AB399',
+                '#E666B3', '#33991A', '#CC9999', '#B3B31A', '#00E680',
+                '#4D8066', '#809980', '#E6FF80', '#1AFF33', '#999933',
+                '#FF3380', '#CCCC00', '#66E64D', '#4D80CC', '#9900B3',
+                '#E64D66', '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'];
+            for (let i = 0; i < 100; i++) {
+                const confettiPiece = document.createElement('div');
+                confettiPiece.classList.add('confetti-piece');
+                confettiPiece.style.left = `${Math.random() * 100}vw`;
+                confettiPiece.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confettiPiece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.appendChild(confettiPiece);
+            }
+        }
+
+        function updateRankDisplay() {
+            rankDisplay.textContent = `集宝箱：您当前收集了 ${matchedPairs * 2}/60 个物质`;
+        }
+
+        function updateHighestUnlockedCount() {
+            highestUnlockedCount = Math.max(highestUnlockedCount, matchedPairs * 2);
+        }
+
+        function updateTipsContent() {
+            if (hasFailedMatch) {
+                let tipText = "以下是你在游戏中出现的错误配对：<br>";
+                incorrectPairs.forEach(pair => {
+                    tipText += `错误配对：${pair.wrong[0]} 和 ${pair.wrong[1]}<br>`;
+                });
+                document.getElementById('tips-content').innerHTML = tipText;
+            } else {
+                document.getElementById('tips-content').textContent = '';
+            }
+        }
+
+        function openKnowledgeBase() {
+            window.open('https://www.zhizhen.com', '_blank');
+        }
+
+        function openVideoPage() {
+            window.open('https://www.bilibili.com', '_blank');
+        }
+
+        function toggleMusic() {
+            if (backgroundMusic.paused) {
+                backgroundMusic.play();
+                musicControl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            } else {
+                backgroundMusic.pause();
+                musicControl.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+            }
+        }
+
+        function openErrorModal() {
+            errorModal.style.display = 'flex';
+        }
+
+        function closeErrorModal() {
+            errorModal.style.display = 'none';
+        }
+
+        function openResultModal(message, isSuccess) {
+            resultModalText.textContent = message;
+            resultModal.style.display = 'flex';
+            if (isSuccess) {
+                playSuccessEffect();
+            } else {
+                playFailEffect();
+            }
+        }
+
+        function closeResultModal() {
+            resultModal.style.display = 'none';
+        }
+
+        function resetGame() {
+            firstCard = null;
+            secondCard = null;
+            matchedPairs = 0;
+            score = 0;
+            consecutiveFailures = 0;
+            incorrectPairs = [];
+            hasFailedMatch = false;
+            remainingTwoPairsFailures = 0;
+            gameBoard.innerHTML = '';
+            result.innerHTML = '';
+            scoreDisplay.textContent = '当前积分: 0';
+            rankDisplay.textContent = '集宝箱：您当前收集了 0/60 个物质';
+            scoreChange.textContent = '';
+            setupGame();
+        }
+
+        setupGame();
+        backgroundMusic.play();
+    </script>
+</body>
+
+</html>
+    
